@@ -1,0 +1,12 @@
+﻿  mapInfo.cpp
+c:\users\tynnic\desktop\sideprojects\地图信息项目\mapinfo\mapinfo\mapinfo.cpp(176): warning C4018: “<”: 有符号/无符号不匹配
+c:\users\tynnic\desktop\sideprojects\地图信息项目\mapinfo\mapinfo\mapinfo.cpp(194): warning C4018: “<”: 有符号/无符号不匹配
+c:\users\tynnic\desktop\sideprojects\地图信息项目\mapinfo\mapinfo\mapinfo.cpp(197): warning C4244: “参数”: 从“float”转换到“int”，可能丢失数据
+c:\users\tynnic\desktop\sideprojects\地图信息项目\mapinfo\mapinfo\mapinfo.cpp(199): warning C4244: “参数”: 从“float”转换到“int”，可能丢失数据
+c:\users\tynnic\desktop\sideprojects\地图信息项目\mapinfo\mapinfo\mapinfo.cpp(200): warning C4244: “参数”: 从“float”转换到“int”，可能丢失数据
+c:\users\tynnic\desktop\sideprojects\地图信息项目\mapinfo\mapinfo\mapinfo.cpp(225): warning C4244: “参数”: 从“float”转换到“int”，可能丢失数据
+c:\users\tynnic\desktop\sideprojects\地图信息项目\mapinfo\mapinfo\mapinfo.cpp(226): warning C4018: “<”: 有符号/无符号不匹配
+c:\users\tynnic\desktop\sideprojects\地图信息项目\mapinfo\mapinfo\mapinfo.cpp(228): warning C4244: “参数”: 从“float”转换到“int”，可能丢失数据
+c:\users\tynnic\desktop\sideprojects\地图信息项目\mapinfo\mapinfo\mapinfo.cpp(229): warning C4244: “参数”: 从“float”转换到“int”，可能丢失数据
+c:\users\tynnic\desktop\sideprojects\地图信息项目\mapinfo\mapinfo\mapinfo.cpp(321): warning C4018: “<”: 有符号/无符号不匹配
+  mapInfo.vcxproj -> C:\Users\tynnic\Desktop\sideProjects\地图信息项目\mapInfo\Debug\mapInfo.exe
