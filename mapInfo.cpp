@@ -16,10 +16,12 @@ struct RealPOINT {
 	float y;
 };
 
+bool IsDragging = false;
 enum TOOL{TOOL_DEFAULT,TOOL_MOVE,TOOL_ADD};
 TOOL CurrentTool;
 int iSelectedPolygon = -1, iSelectedVertex = -1, iHoverPolygon = -1;
 int MouseXwhenSelected = 0, MouseYwhenSelected = 0;
+int MouseXdragStart = 0, MouseXdragEnd = 0, MouseYdragStart = 0, MouseYdragEnd = 0;
 using namespace std;
 vector<RealPOINT> PolygonBeingModified;
 vector<std::vector<RealPOINT>> Polygons(0);
@@ -330,11 +332,40 @@ bool ProcessMouseMsgs(UINT message, WPARAM wParam, LPARAM lParam)
 		}
 		break;
 	case TOOL_DEFAULT:
+		//Dragging  
+		switch (message) {
+		case WM_LBUTTONDOWN:
+			IsDragging = true;
+			MouseXdragStart = MouseXdragEnd = MouseX;
+			MouseYdragStart = MouseYdragEnd = MouseY;
+			break;
+		case WM_MOUSEMOVE:
+			if(wParam & MK_LBUTTON && IsDragging)
+			{
+				MouseXdragEnd = MouseX;
+				MouseYdragEnd = MouseY;
+			}
+			break;
+		case WM_LBUTTONUP:
+			IsDragging = false;
+			break;
+		}
 		break;
 	}
 
 	//
 	return isRefresh = true;
+}
+
+void DrawDragging(HDC hdc)
+{
+	if (!IsDragging)
+		return;
+
+	HPEN hPen = CreatePen(PS_DASH, 2, 0xFF0000);
+	SelectObject(hdc, GetStockObject(NULL_BRUSH));
+	SelectObject(hdc, hPen);
+	Rectangle(hdc, MouseXdragStart, MouseYdragStart, MouseXdragEnd, MouseYdragEnd);
 }
 
 void Draw(HWND hWnd,HDC hdc)
@@ -344,10 +375,11 @@ void Draw(HWND hWnd,HDC hdc)
 	static HDC hDCbuffer = CreateCompatibleDC(hdc);
 	static HBITMAP hBitmap = CreateCompatibleBitmap(hdc, Rect.right, Rect.bottom);
 	SelectObject(hDCbuffer, hBitmap);
-	FillRect(hDCbuffer, &Rect, WHITE_BRUSH);
-	Rectangle(hDCbuffer, 0, 0, Rect.right, Rect.bottom);
+	FillRect(hDCbuffer, &Rect, (HBRUSH)GetStockObject(WHITE_BRUSH));
+	//Rectangle(hDCbuffer, 0, 0, Rect.right, Rect.bottom);
 	DrawAllPolygons(hDCbuffer);
 	DrawInfo(hDCbuffer);
+	DrawDragging(hDCbuffer);
 	BitBlt(hdc, 0, 0, Rect.right, Rect.bottom, hDCbuffer, 0, 0, SRCCOPY);
 	
 }
@@ -399,6 +431,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_LBUTTONDBLCLK:
 		EndAddingNewPolygon();
 		break;
+	case WM_LBUTTONUP:
 	case WM_RBUTTONDOWN:
 	case WM_LBUTTONDOWN:
 	case WM_MOUSEMOVE:
