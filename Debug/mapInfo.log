@@ -8,5 +8,5 @@ c:\users\tynnic\desktop\sideprojects\地图信息项目\mapinfo\mapinfo\mapinfo.
 c:\users\tynnic\desktop\sideprojects\地图信息项目\mapinfo\mapinfo\mapinfo.cpp(228): warning C4018: “<”: 有符号/无符号不匹配
 c:\users\tynnic\desktop\sideprojects\地图信息项目\mapinfo\mapinfo\mapinfo.cpp(230): warning C4244: “参数”: 从“float”转换到“int”，可能丢失数据
 c:\users\tynnic\desktop\sideprojects\地图信息项目\mapinfo\mapinfo\mapinfo.cpp(231): warning C4244: “参数”: 从“float”转换到“int”，可能丢失数据
-c:\users\tynnic\desktop\sideprojects\地图信息项目\mapinfo\mapinfo\mapinfo.cpp(323): warning C4018: “<”: 有符号/无符号不匹配
+c:\users\tynnic\desktop\sideprojects\地图信息项目\mapinfo\mapinfo\mapinfo.cpp(357): warning C4018: “<”: 有符号/无符号不匹配
   mapInfo.vcxproj -> C:\Users\tynnic\Desktop\sideProjects\地图信息项目\mapInfo\Debug\mapInfo.exe

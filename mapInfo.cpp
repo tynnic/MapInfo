@@ -286,6 +286,37 @@ int GetiPolygonUnderMouse(int MouseX,int MouseY)
 	return -1;
 }
 
+bool ProcessKeyMsgs(UINT message, WPARAM wParam, LPARAM lParam)
+{
+	bool isRefresh = false;
+	switch (message)
+	{
+	case WM_KEYUP:
+		break;
+	case WM_KEYDOWN:
+		switch (wParam)
+		{
+		case 'A':
+			SwitchTool(TOOL_ADD);
+			StartAddingNewPolygon();
+			break;
+		case 'M':
+			SwitchTool(TOOL_MOVE);
+			break;
+		case VK_DELETE:
+			if (iSelectedPolygon != -1)
+				Polygons.erase(Polygons.begin() + iSelectedPolygon);
+			break;
+		case VK_RETURN:
+			EndAddingNewPolygon();
+			break;
+		}
+		break;
+
+	}
+	return isRefresh = true;
+}
+
 bool ProcessMouseMsgs(UINT message, WPARAM wParam, LPARAM lParam)
 {
 	bool isRefresh = false;
@@ -298,6 +329,9 @@ bool ProcessMouseMsgs(UINT message, WPARAM wParam, LPARAM lParam)
 	case TOOL_ADD:
 		switch (message)
 		{
+		case WM_LBUTTONDBLCLK:
+			EndAddingNewPolygon();
+			break;
 		case WM_LBUTTONDOWN:
 			PolygonBeingAdded.push_back({ (float)MouseX, (float)MouseY });
 			break;
@@ -320,10 +354,10 @@ bool ProcessMouseMsgs(UINT message, WPARAM wParam, LPARAM lParam)
 		case WM_MOUSEMOVE:
 			if ((wParam & MK_LBUTTON) && iHoverPolygon != -1 && iSelectedPolygon != -1)
 			{
-				for (int i = 0 ;i < Polygons[iHoverPolygon].size() ;i++)
+				for (int i = 0 ;i < Polygons[iSelectedPolygon].size() ;i++)
 				{
-					Polygons[iHoverPolygon][i].x = PolygonBeingModified[i].x + (MouseX - MouseXwhenSelected);
-					Polygons[iHoverPolygon][i].y = PolygonBeingModified[i].y + (MouseY - MouseYwhenSelected);
+					Polygons[iSelectedPolygon][i].x = PolygonBeingModified[i].x + (MouseX - MouseXwhenSelected);
+					Polygons[iSelectedPolygon][i].y = PolygonBeingModified[i].y + (MouseY - MouseYwhenSelected);
 				}
 			}
 			break;
@@ -352,7 +386,6 @@ bool ProcessMouseMsgs(UINT message, WPARAM wParam, LPARAM lParam)
 		}
 		break;
 	}
-
 	//
 	return isRefresh = true;
 }
@@ -429,8 +462,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	}
 	break;
 	case WM_LBUTTONDBLCLK:
-		EndAddingNewPolygon();
-		break;
 	case WM_LBUTTONUP:
 	case WM_RBUTTONDOWN:
 	case WM_LBUTTONDOWN:
@@ -439,23 +470,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			InvalidateRect(hWnd, NULL, false);
 		break;
 	case WM_KEYDOWN:
-		switch (wParam)
-		{
-		case 'A':
-			SwitchTool(TOOL_ADD);
-			StartAddingNewPolygon();
-			break;
-		case 'M':
-			SwitchTool(TOOL_MOVE);
-			break;
-		case VK_DELETE:
-			if(iSelectedPolygon != -1)
-				Polygons.erase(Polygons.begin() + iSelectedPolygon);
-			break;
-		case VK_RETURN:
-			EndAddingNewPolygon();
-			break;
-		}
+	case WM_KEYUP:
+		if (ProcessKeyMsgs(message, wParam, lParam))
+			InvalidateRect(hWnd, NULL, false);
 		break;
     case WM_PAINT:
         {
