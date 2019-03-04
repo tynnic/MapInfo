@@ -158,11 +158,11 @@ void LoadMapInfo()
 	//Just two layered vectors easy to store. one vector by one vector sequentially.  easy to handle. 
 }
 
-void DrawInfo(HDC hdc, int x, int y)
+void DrawInfo(HDC hdc)
 {
 	WCHAR szBuffer[20];
-	wsprintf(szBuffer, L"X:%d Y:%d", x, y);
-	TextOut(hdc, 33, 33, szBuffer, lstrlen(szBuffer));
+	//wsprintf(szBuffer, L"X:%d Y:%d", x, y);
+	//TextOut(hdc, 33, 33, szBuffer, lstrlen(szBuffer));
 	wsprintf(szBuffer, L"Tool:%s", GetToolString(CurrentTool));
 	TextOut(hdc, 33, 63, szBuffer, lstrlen(szBuffer));
 }
@@ -337,6 +337,20 @@ bool ProcessMouseMsgs(UINT message, WPARAM wParam, LPARAM lParam)
 	return isRefresh = true;
 }
 
+void Draw(HWND hWnd,HDC hdc)
+{
+	RECT Rect;
+	GetClientRect(hWnd, &Rect);
+	static HDC hDCbuffer = CreateCompatibleDC(hdc);
+	static HBITMAP hBitmap = CreateCompatibleBitmap(hdc, Rect.right, Rect.bottom);
+	SelectObject(hDCbuffer, hBitmap);
+	FillRect(hDCbuffer, &Rect, WHITE_BRUSH);
+	Rectangle(hDCbuffer, 0, 0, Rect.right, Rect.bottom);
+	DrawAllPolygons(hDCbuffer);
+	DrawInfo(hDCbuffer);
+	BitBlt(hdc, 0, 0, Rect.right, Rect.bottom, hDCbuffer, 0, 0, SRCCOPY);
+	
+}
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -389,7 +403,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_LBUTTONDOWN:
 	case WM_MOUSEMOVE:
 		if (ProcessMouseMsgs(message, wParam, lParam))
-			InvalidateRect(hWnd, NULL, true);
+			InvalidateRect(hWnd, NULL, false);
 		break;
 	case WM_KEYDOWN:
 		switch (wParam)
@@ -414,8 +428,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
-			DrawAllPolygons(hdc);
-			DrawInfo(hdc,MouseX,MouseY);
+			Draw(hWnd,hdc);
             // TODO: 在此处添加使用 hdc 的任何绘图代码...
             EndPaint(hWnd, &ps);
         }
