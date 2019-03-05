@@ -23,6 +23,7 @@ int iSelectedPolygon = -1, iSelectedVertex = -1, iHoverPolygon = -1;
 int MouseXwhenSelected = 0, MouseYwhenSelected = 0;
 int MouseXdragStart = 0, MouseXdragEnd = 0, MouseYdragStart = 0, MouseYdragEnd = 0;
 using namespace std;
+vector<int> SelectedVertexes = {};
 vector<RealPOINT> PolygonBeingModified;
 vector<std::vector<RealPOINT>> Polygons(0);
 vector<RealPOINT> PolygonBeingAdded;
@@ -207,6 +208,7 @@ void DrawAddedPolygon(HDC hdc)
 
 void DrawAllPolygons(HDC hdc)
 {
+	HPEN hSelectedVertPen = CreatePen(PS_SOLID, 2, 0xEEEEEE);
 	HPEN hNormalPen = CreatePen(PS_SOLID, 2, 0xFF);
 	HPEN hHoverPen = CreatePen(PS_SOLID, 2, 0xFF00);
 	HPEN hSelectedPen = CreatePen(PS_SOLID, 2, 0xFF0000);
@@ -225,14 +227,27 @@ void DrawAllPolygons(HDC hdc)
 	
 		POINT Non;
 		MoveToEx(hdc, polygon[polygon.size()-1].x, polygon[polygon.size() - 1].y,&Non);
+		int iInSelectedVertexes = 0;
 		for (int i = 0 ;i < polygon.size(); i++)
 		{
 			LineTo(hdc, polygon[i].x, polygon[i].y);
+			if (iSelectedPolygon == iPolygon)
+			{
+				if (iInSelectedVertexes < SelectedVertexes.size() && i == SelectedVertexes[iInSelectedVertexes])
+				{
+					SelectObject(hdc, hSelectedVertPen);
+					iInSelectedVertexes++;
+				}
+				else
+					SelectObject(hdc, hNormalPen);
+			}
 			Ellipse(hdc, polygon[i].x - 4, polygon[i].y - 4, polygon[i].x + 4, polygon[i].y + 4);
 		}
 		iPolygon++;
 	}
 	DrawAddedPolygon(hdc);
+	DeleteObject(hSelectedPen);
+	DeleteObject(hSelectedVertPen);
 	DeleteObject(hHoverPen);
 	DeleteObject(hNormalPen);
 }
@@ -286,6 +301,36 @@ int GetiPolygonUnderMouse(int MouseX,int MouseY)
 	return -1;
 }
 
+bool isPtInRect(RECT &DragArea, RealPOINT Pt)
+{
+	if (Pt.x > DragArea.left &&
+		Pt.x < DragArea.right &&
+		Pt.y > DragArea.top &&
+		Pt.y < DragArea.bottom)
+		return true;
+
+	return false;
+}
+
+int inline PointDistanceSquared(RealPOINT &Pt1, RealPOINT Pt2)
+{
+	return pow((Pt1.x - Pt2.x), 2) + pow((Pt1.y - Pt2.y), 2);
+}
+
+
+void GenerateSelectedVertexesFromDragArea(RECT &DragArea)
+{
+	if (iSelectedPolygon == -1)
+		return;
+	int i = 0;
+	for (auto Vertex : Polygons[iSelectedPolygon])
+	{
+		if (isPtInRect(DragArea, Vertex))
+			SelectedVertexes.push_back(i);
+		i++;
+	}
+}
+
 bool ProcessKeyMsgs(UINT message, WPARAM wParam, LPARAM lParam)
 {
 	bool isRefresh = false;
@@ -302,6 +347,9 @@ bool ProcessKeyMsgs(UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 		case 'M':
 			SwitchTool(TOOL_MOVE);
+			break;
+		case 'D':
+			SwitchTool(TOOL_DEFAULT);
 			break;
 		case VK_DELETE:
 			if (iSelectedPolygon != -1)
@@ -347,8 +395,7 @@ bool ProcessMouseMsgs(UINT message, WPARAM wParam, LPARAM lParam)
 		case WM_LBUTTONDOWN:
 			MouseXwhenSelected = MouseX;
 			MouseYwhenSelected = MouseY;
-			iSelectedPolygon = iHoverPolygon;
-			if (iHoverPolygon != -1)
+			if (iSelectedPolygon != -1 && iHoverPolygon != -1)
 				PolygonBeingModified = Polygons[iHoverPolygon];
 			break;
 		case WM_MOUSEMOVE:
@@ -362,6 +409,24 @@ bool ProcessMouseMsgs(UINT message, WPARAM wParam, LPARAM lParam)
 			}
 			break;
 		case WM_LBUTTONUP:
+			bool isAnyVertexSelected = false;
+			if (iSelectedPolygon != -1)
+			{
+				int iVertex = 0;
+				for(auto Vertex : Polygons[iSelectedPolygon])
+				{ 
+					if (PointDistanceSquared(Vertex, { (float)MouseX,(float)MouseY }) < 15)
+					{
+						isAnyVertexSelected = true;
+						SelectedVertexes.clear();
+						SelectedVertexes.push_back(iVertex);
+						break;
+					}
+					iVertex++;
+				}
+			}
+			if(!isAnyVertexSelected)
+				iSelectedPolygon = iHoverPolygon;
 			break;
 		}
 		break;
@@ -378,6 +443,12 @@ bool ProcessMouseMsgs(UINT message, WPARAM wParam, LPARAM lParam)
 			{
 				MouseXdragEnd = MouseX;
 				MouseYdragEnd = MouseY;
+				RECT DragArea;
+				DragArea.left = MouseXdragStart > MouseXdragEnd ? MouseXdragEnd : MouseXdragStart;
+				DragArea.right = MouseXdragStart > MouseXdragEnd ? MouseXdragStart : MouseXdragEnd;
+				DragArea.top = MouseYdragStart > MouseYdragEnd ? MouseYdragEnd : MouseYdragStart;
+				DragArea.bottom = MouseYdragStart > MouseYdragEnd ? MouseYdragStart : MouseYdragEnd;
+				GenerateSelectedVertexesFromDragArea(DragArea);
 			}
 			break;
 		case WM_LBUTTONUP:
@@ -414,7 +485,6 @@ void Draw(HWND hWnd,HDC hdc)
 	DrawInfo(hDCbuffer);
 	DrawDragging(hDCbuffer);
 	BitBlt(hdc, 0, 0, Rect.right, Rect.bottom, hDCbuffer, 0, 0, SRCCOPY);
-	
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
