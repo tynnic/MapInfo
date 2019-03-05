@@ -16,6 +16,7 @@ struct RealPOINT {
 	float y;
 };
 
+bool IsDraggingVertexes = false;
 bool IsDragging = false;
 enum TOOL{TOOL_DEFAULT,TOOL_MOVE,TOOL_ADD};
 TOOL CurrentTool;
@@ -212,6 +213,7 @@ void DrawAllPolygons(HDC hdc)
 	HPEN hNormalPen = CreatePen(PS_SOLID, 2, 0xFF);
 	HPEN hHoverPen = CreatePen(PS_SOLID, 2, 0xFF00);
 	HPEN hSelectedPen = CreatePen(PS_SOLID, 2, 0xFF0000);
+	HPEN hPenNow = 0;
 	int iPolygon = 0;
 	for(auto polygon : Polygons)
 	{
@@ -219,29 +221,26 @@ void DrawAllPolygons(HDC hdc)
 			continue;
 
 		if (iSelectedPolygon == iPolygon)
-			SelectObject(hdc, hSelectedPen);
+			SelectObject(hdc, hPenNow = hSelectedPen);
 		else if (iHoverPolygon == iPolygon)
-			SelectObject(hdc, hHoverPen);
+			SelectObject(hdc, hPenNow = hHoverPen);
 		else
-			SelectObject(hdc, hNormalPen);
+			SelectObject(hdc, hPenNow = hNormalPen);
 	
 		POINT Non;
 		MoveToEx(hdc, polygon[polygon.size()-1].x, polygon[polygon.size() - 1].y,&Non);
-		int iInSelectedVertexes = 0;
 		for (int i = 0 ;i < polygon.size(); i++)
 		{
 			LineTo(hdc, polygon[i].x, polygon[i].y);
 			if (iSelectedPolygon == iPolygon)
 			{
-				if (iInSelectedVertexes < SelectedVertexes.size() && i == SelectedVertexes[iInSelectedVertexes])
-				{
-					SelectObject(hdc, hSelectedVertPen);
-					iInSelectedVertexes++;
-				}
+				if (std::count(SelectedVertexes.begin(),SelectedVertexes.end(),i) > 0)
+					SelectObject(hdc, hSelectedVertPen);				
 				else
-					SelectObject(hdc, hNormalPen);
+					SelectObject(hdc, hPenNow);
 			}
 			Ellipse(hdc, polygon[i].x - 4, polygon[i].y - 4, polygon[i].x + 4, polygon[i].y + 4);
+			SelectObject(hdc, hPenNow);
 		}
 		iPolygon++;
 	}
@@ -365,6 +364,20 @@ bool ProcessKeyMsgs(UINT message, WPARAM wParam, LPARAM lParam)
 	return isRefresh = true;
 }
 
+bool CheckMouseNearSelectedVertexes(int MouseX, int MouseY)
+{
+	if (iSelectedPolygon == -1)
+		return false;
+
+	for (auto iVertex : SelectedVertexes)
+	{
+		if (PointDistanceSquared(Polygons[iSelectedPolygon][iVertex], { (float)MouseX,(float)MouseY }) < 15)
+			return true;
+	}
+
+	return false;
+}
+
 bool ProcessMouseMsgs(UINT message, WPARAM wParam, LPARAM lParam)
 {
 	bool isRefresh = false;
@@ -395,14 +408,24 @@ bool ProcessMouseMsgs(UINT message, WPARAM wParam, LPARAM lParam)
 		case WM_LBUTTONDOWN:
 			MouseXwhenSelected = MouseX;
 			MouseYwhenSelected = MouseY;
+
 			if (iSelectedPolygon != -1 && iHoverPolygon != -1)
-				PolygonBeingModified = Polygons[iHoverPolygon];
+			{
+				if (CheckMouseNearSelectedVertexes(MouseX, MouseY))
+					IsDraggingVertexes = true;
+				else
+					IsDraggingVertexes = false;
+				PolygonBeingModified = Polygons[iHoverPolygon];			
+			}
 			break;
 		case WM_MOUSEMOVE:
-			if ((wParam & MK_LBUTTON) && iHoverPolygon != -1 && iSelectedPolygon != -1)
+			if ((wParam & MK_LBUTTON) && iSelectedPolygon != -1)
 			{
 				for (int i = 0 ;i < Polygons[iSelectedPolygon].size() ;i++)
 				{
+					if (IsDraggingVertexes && std::count(SelectedVertexes.begin(), SelectedVertexes.end(), i) == 0)
+						continue;
+
 					Polygons[iSelectedPolygon][i].x = PolygonBeingModified[i].x + (MouseX - MouseXwhenSelected);
 					Polygons[iSelectedPolygon][i].y = PolygonBeingModified[i].y + (MouseY - MouseYwhenSelected);
 				}
@@ -418,7 +441,9 @@ bool ProcessMouseMsgs(UINT message, WPARAM wParam, LPARAM lParam)
 					if (PointDistanceSquared(Vertex, { (float)MouseX,(float)MouseY }) < 15)
 					{
 						isAnyVertexSelected = true;
-						SelectedVertexes.clear();
+						if ((MK_SHIFT & wParam) == 0)
+							SelectedVertexes.clear();
+							
 						SelectedVertexes.push_back(iVertex);
 						break;
 					}
@@ -426,7 +451,11 @@ bool ProcessMouseMsgs(UINT message, WPARAM wParam, LPARAM lParam)
 				}
 			}
 			if(!isAnyVertexSelected)
+			{
+				if (iSelectedPolygon != iHoverPolygon)
+					SelectedVertexes.clear();
 				iSelectedPolygon = iHoverPolygon;
+			}
 			break;
 		}
 		break;
